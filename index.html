@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GAME SÚC VẬT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Lexend:wght@400;600;700&display=swap">
+<style>
+/* Layout: bàn sơn mài — bàn cờ 7×7 bên trái, bảng điều khiển trận đấu bên phải; xếp chồng trên điện thoại. Giao diện một tông tối có chủ ý. */
+:root{
+  --lac:#170c0a; --lac-2:#22120e; --lac-3:#331b15; --lac-4:#45261d;
+  --gold:#e0ab47; --gold-dim:#7d5f2e; --paper:#f2e7cf; --muted:#b59f83;
+  --p1:#e0502f; --p2:#4b98d6;
+  --good:#79c25f; --bad:#ef6a45; --poison:#b38ae0;
+  --el-kim:#d8d0b0; --el-moc:#62a84e; --el-thuy:#4289c0; --el-hoa:#d65a30; --el-tho:#bb913f;
+  --f-display:'Bungee','Arial Black',Impact,system-ui,sans-serif;
+  --f-body:'Lexend','Segoe UI',system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--lac);color:var(--paper)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px;
+  background:radial-gradient(ellipse 90% 50% at 50% 0%,var(--lac-3) 0%,var(--lac) 70%) var(--lac);min-height:100%}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+.app{max-width:1060px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+/* Header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px}
+.brand h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,5vw,40px);line-height:1;margin:0;color:var(--gold);letter-spacing:.01em;text-wrap:balance}
+.brand h1 .gr{color:var(--paper)}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:13px;letter-spacing:.04em}
+.score{display:flex;align-items:center;gap:14px;background:var(--lac-2);border:1px solid var(--gold-dim);border-radius:8px;padding:8px 14px}
+.sc{display:flex;flex-direction:column;gap:4px;align-items:center;min-width:84px;max-width:140px}
+.sc b{font-size:13px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc.p1 b{color:var(--p1)} .sc.p2 b{color:var(--p2)}
+.pips{display:flex;gap:5px}
+.pips i{width:14px;height:14px;border-radius:50%;border:2px solid var(--gold-dim)}
+.sc.p1 .pips i.on{background:var(--p1);border-color:var(--p1)}
+.sc.p2 .pips i.on{background:var(--p2);border-color:var(--p2)}
+.sc-mid{font-family:var(--f-display);font-size:13px;color:var(--gold);text-align:center;min-width:76px}
+
+/* Main layout */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+@media (max-width:880px){.layout{grid-template-columns:minmax(0,1fr)}}
+.board-wrap{display:flex;flex-direction:column;gap:10px;min-width:0}
+.side-tag{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;display:flex;justify-content:space-between;color:var(--muted);gap:10px}
+.side-tag b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side-tag.p1 b{color:var(--p1)} .side-tag.p2 b{color:var(--p2)}
+.board-frame{max-width:600px;width:100%;margin:0 auto}
+.board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:10px;background:var(--lac-2);
+  border:2px solid var(--gold-dim);border-radius:8px;box-shadow:inset 0 0 0 4px var(--lac);width:100%}
+.cell{aspect-ratio:1;position:relative;border-radius:4px;background:var(--lac-3);display:grid;place-items:center;user-select:none}
+.cell .glyph{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:clamp(7px,1.35vw,10px);font-weight:700;letter-spacing:.08em;opacity:.9;pointer-events:none}
+.t-kim{background:color-mix(in srgb,var(--el-kim) 24%,var(--lac-3))} .t-kim .glyph{color:var(--el-kim)}
+.t-moc{background:color-mix(in srgb,var(--el-moc) 30%,var(--lac-3))} .t-moc .glyph{color:var(--el-moc)}
+.t-thuy{background:color-mix(in srgb,var(--el-thuy) 32%,var(--lac-3))} .t-thuy .glyph{color:var(--el-thuy)}
+.t-hoa{background:color-mix(in srgb,var(--el-hoa) 30%,var(--lac-3))} .t-hoa .glyph{color:var(--el-hoa)}
+.t-tho{background:color-mix(in srgb,var(--el-tho) 30%,var(--lac-3))} .t-tho .glyph{color:var(--el-tho)}
+.river{grid-column:1/-1;aspect-ratio:7.3/1;border-radius:4px;display:grid;place-items:center;overflow:hidden;
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--el-thuy) 16%,var(--lac-2)) 0 6px,var(--lac-2) 6px 12px)}
+.river span{font-family:var(--f-display);letter-spacing:.2em;padding-left:.2em;font-size:clamp(11px,2.4vw,18px);color:var(--gold);white-space:nowrap;text-shadow:0 2px 0 var(--lac)}
+.cell.valid{cursor:pointer;outline:2px dashed var(--gold-dim);outline-offset:-3px}
+.cell.valid:hover,.cell.valid:focus-visible{outline:2px solid var(--gold);outline-offset:-3px}
+.cell.bonus{box-shadow:0 0 0 2px var(--gold),0 0 16px color-mix(in srgb,var(--gold) 60%,transparent)}
+.piece{width:86%;height:86%;border-radius:50%;display:grid;place-items:center;position:relative;background:var(--paper);
+  border:3px solid var(--p1);font-size:clamp(17px,4vw,32px);line-height:1}
+.piece.p2{border-color:var(--p2)}
+.piece .ps{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);font-family:var(--f-display);font-size:clamp(8px,1.4vw,11px);
+  background:var(--lac);color:var(--gold);padding:1px 5px;border-radius:4px;white-space:nowrap}
+.piece.fighting{animation:pulse 1.4s ease-in-out infinite}
+.piece.won{box-shadow:0 0 0 3px var(--gold)}
+.piece.lost{filter:grayscale(1) brightness(.55)}
+.piece.lost::after{content:"✕";position:absolute;inset:0;display:grid;place-items:center;color:var(--bad);font-size:1.1em;font-weight:700}
+.piece.draw{filter:saturate(.4)}
+@keyframes pulse{50%{transform:scale(1.08);box-shadow:0 0 18px color-mix(in srgb,var(--gold) 70%,transparent)}}
+
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;max-width:600px;width:100%;margin:0 auto}
+.legend > div{background:var(--lac-2);border-radius:6px;padding:10px 12px;min-width:0}
+.legend h3{margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.legend h3 small{color:var(--muted);letter-spacing:0;text-transform:none;font-weight:400;margin-left:6px}
+.legend p{margin:0;font-size:13px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.elc{font-style:normal;font-weight:700;font-size:10px;letter-spacing:.08em;padding:1px 7px;border-radius:4px;white-space:nowrap}
+.ek{color:var(--el-kim);background:color-mix(in srgb,var(--el-kim) 16%,var(--lac-3))}
+.em{color:var(--el-moc);background:color-mix(in srgb,var(--el-moc) 20%,var(--lac-3))}
+.et{color:var(--el-thuy);background:color-mix(in srgb,var(--el-thuy) 24%,var(--lac-3))}
+.eh{color:var(--el-hoa);background:color-mix(in srgb,var(--el-hoa) 22%,var(--lac-3))}
+.eo{color:var(--el-tho);background:color-mix(in srgb,var(--el-tho) 22%,var(--lac-3))}
+
+/* Panel */
+.panel{background:var(--lac-2);border:1px solid var(--gold-dim);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.phase-head{display:flex;flex-direction:column;gap:6px}
+.phase-head h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.15;text-wrap:balance}
+.tag{align-self:flex-start;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:4px;background:var(--lac-4);color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag.p1{background:var(--p1);color:var(--lac)} .tag.p2{background:var(--p2);color:var(--lac)}
+.hint{margin:0;color:var(--muted);font-size:13px}
+.hint b{color:var(--paper)}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{font-family:var(--f-display);font-size:14px;letter-spacing:.02em;background:var(--gold);color:var(--lac);border:none;padding:12px 18px;border-radius:6px;cursor:pointer;transition:transform .12s,filter .12s}
+.btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold-dim)}
+.btn.wide{width:100%}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.names{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.field.p1{color:var(--p1)} .field.p2{color:var(--p2)}
+.field input{font-size:15px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--paper);background:var(--lac);border:1px solid var(--gold-dim);border-radius:6px;padding:10px 12px;width:100%}
+.field input::placeholder{color:var(--muted)}
+.field input:focus{outline:none;border-color:var(--gold)}
+.field small{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
+
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.card{position:relative;text-align:left;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;align-items:start;
+  padding:8px 10px;background:var(--lac-3);border:1px solid transparent;border-radius:6px;cursor:pointer}
+.card:hover:not(:disabled){border-color:var(--gold-dim)}
+.card.sel{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 16%,var(--lac-3))}
+.card:disabled{cursor:default}
+.card.gone{opacity:.38}
+.card .emo{grid-row:span 3;font-size:28px;line-height:1.1}
+.card .nm{font-weight:700;font-size:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.card .sk{font-size:12px;color:var(--gold);font-weight:600}
+.card .ds{font-size:11px;color:var(--muted);line-height:1.35}
+.own{position:absolute;top:6px;right:6px;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;color:var(--lac);max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.own.p1{background:var(--p1)} .own.p2{background:var(--p2)}
+.roster{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px}
+.roster div{background:var(--lac);border-radius:6px;padding:8px;min-height:44px;min-width:0}
+.roster b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roster .p1 b{color:var(--p1)} .roster .p2 b{color:var(--p2)}
+.roster span{font-size:20px;letter-spacing:2px}
+.opp-note{background:var(--lac);border-radius:6px;padding:10px;font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;padding:2px 8px;border-radius:4px;background:var(--lac-4)}
+.chip.good{background:color-mix(in srgb,var(--good) 25%,var(--lac-3));color:var(--good)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 22%,var(--lac-3));color:var(--bad)}
+.q{color:var(--muted)}
+
+/* Roll */
+.duel{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
+.mini{display:flex;gap:8px;align-items:center;background:var(--lac-3);border-radius:6px;padding:8px;border:2px solid transparent;min-width:0}
+.mini.active{border-color:var(--gold)}
+.mini .emo{font-size:30px}
+.mini b{font-size:13px} .mini.p1 b{color:var(--p1)} .mini.p2 b{color:var(--p2)}
+.mini .v{font-size:12px}
+.stars{color:var(--gold);letter-spacing:1px}
+.stars .off{color:var(--lac-4)}
+.vs{font-family:var(--f-display);color:var(--gold);font-size:16px}
+.roller{display:flex;justify-content:space-around;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 0}
+.die{width:76px;height:76px;background:var(--paper);border-radius:14px;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:11px;gap:3px;box-shadow:0 6px 0 var(--gold-dim)}
+.pip{border-radius:50%;background:var(--lac);visibility:hidden}
+.pip.on{visibility:visible}
+.die.rolling{animation:tumble .14s linear infinite}
+@keyframes tumble{25%{transform:rotate(10deg) translateY(-4px)}75%{transform:rotate(-10deg) translateY(-2px)}}
+.wheel-box{position:relative;width:176px;height:176px;max-width:100%}
+.pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:18px solid var(--paper);z-index:2}
+.wheel{width:100%;height:100%;border-radius:50%;border:4px solid var(--gold);position:relative;transition:transform 2.2s cubic-bezier(.15,.7,.2,1);
+  background:conic-gradient(var(--lac-4) 0 60deg,var(--lac-3) 60deg 120deg,var(--lac-4) 120deg 180deg,var(--lac-3) 180deg 240deg,var(--lac-4) 240deg 300deg,var(--lac-3) 300deg 360deg)}
+.wheel::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--gold);box-shadow:inset 0 0 0 4px var(--lac-2)}
+.wheel .lbl{position:absolute;left:50%;top:50%;display:flex;flex-direction:column;align-items:center;font-size:10px;line-height:1.1;font-weight:600;white-space:nowrap}
+.wheel .lbl i{font-style:normal;font-size:17px}
+
+/* Battle */
+.arena{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center}
+.fighter{position:relative;background:var(--lac-3);border-radius:8px;padding:10px;text-align:center;border:2px solid var(--p1);display:flex;flex-direction:column;gap:3px;min-width:0;transition:transform .15s}
+.fighter.p2{border-color:var(--p2)}
+.f-side{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f-emo{font-size:42px;line-height:1.1}
+.f-name{font-weight:700;font-size:14px}
+.f-st{color:var(--gold);font-family:var(--f-display);font-weight:400;font-size:12px}
+.f-st s{color:var(--muted)}
+.f-sk{font-size:12px}
+.f-pass{font-size:11px;color:var(--gold)}
+.hp{height:10px;background:var(--lac);border-radius:5px;overflow:hidden}
+.hp i{display:block;height:100%;background:var(--good);transition:width .35s ease}
+.hp i.low{background:var(--bad)}
+.hp-t{font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.fighter.ko{filter:grayscale(1) brightness(.6)}
+.fighter.shake{animation:shake .32s}
+.fighter.lunge-l{transform:translateX(10px)} .fighter.lunge-r{transform:translateX(-10px)}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.float{position:absolute;left:50%;top:22%;transform:translateX(-50%);font-family:var(--f-display);font-size:20px;pointer-events:none;animation:rise .9s ease-out forwards;white-space:nowrap}
+.float.dmg{color:var(--bad)} .float.heal{color:var(--good)} .float.miss{color:var(--paper)} .float.poison{color:var(--poison)}
+@keyframes rise{from{opacity:1;transform:translate(-50%,0)}to{opacity:0;transform:translate(-50%,-34px)}}
+.log{list-style:none;margin:0;padding:8px 10px;background:var(--lac);border-radius:6px;max-height:190px;overflow:auto;display:flex;flex-direction:column;gap:3px;font-size:12.5px}
+.log li.p1{color:color-mix(in srgb,var(--p1) 70%,var(--paper))} .log li.p2{color:color-mix(in srgb,var(--p2) 70%,var(--paper))}
+.log li.info{color:var(--gold)} .log li.ko{font-weight:700;color:var(--paper)}
+.banner{font-family:var(--f-display);font-size:18px;text-align:center;padding:10px;border-radius:6px;background:var(--lac-4)}
+.banner.p1{background:var(--p1);color:var(--lac)} .banner.p2{background:var(--p2);color:var(--lac)}
+#battleCtl{display:flex;flex-direction:column;gap:10px}
+
+/* Rules */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;border-top:1px solid var(--gold-dim);padding-top:18px}
+.rules h2{font-family:var(--f-display);font-weight:400;font-size:18px;color:var(--gold);margin:0 0 8px}
+.rules ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.rules p{margin:0 0 6px;font-size:14px}
+.tbl-wrap{overflow-x:auto;grid-column:1/-1}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--lac-4)}
+th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.num{font-variant-numeric:tabular-nums}
+
+/* Online */
+.online{border-top:1px solid var(--gold-dim);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.online h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:15px;color:var(--gold)}
+.join{display:flex;gap:8px;flex-wrap:wrap}
+.join input{flex:1 1 140px;min-width:0;font-family:var(--f-display);font-size:16px;letter-spacing:.2em;text-transform:uppercase;color:var(--paper);background:var(--lac);border:1px solid var(--gold-dim);border-radius:6px;padding:10px 12px}
+.join input::placeholder{font-family:var(--f-body);letter-spacing:0;text-transform:none;font-size:14px;color:var(--muted)}
+.join input:focus{outline:none;border-color:var(--gold)}
+.join input[aria-invalid="true"]{border-color:var(--bad)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.code-box{font-family:var(--f-display);font-size:clamp(30px,8vw,44px);letter-spacing:.18em;text-align:center;color:var(--gold);background:var(--lac);border:2px dashed var(--gold-dim);border-radius:8px;padding:14px 8px;user-select:all}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:8px;vertical-align:middle;animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.25}}
+.you{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);line-height:1}
+
+/* Overlay */
+#overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--lac) 86%,transparent);display:grid;place-items:center;z-index:20;padding:16px}
+.ov-card{background:var(--lac-2);border:2px solid var(--gold);border-radius:10px;padding:26px;text-align:center;max-width:380px;width:100%;display:flex;flex-direction:column;gap:12px;align-items:center}
+.ov-card h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:24px;color:var(--gold);text-wrap:balance}
+.ov-emo{font-size:54px}
+.ov-card p{margin:0;color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){
+  .wheel{transition-duration:.3s} .piece.fighting{animation:none;box-shadow:0 0 0 3px var(--gold)}
+  .die.rolling,.fighter.shake{animation:none} .float{animation-duration:.4s}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>GAME <span class="gr">SÚC VẬT</span></h1>
+      <p>12 con giáp · bàn 7×7 · thắng 3 trận trước là thắng</p>
+    </div>
+    <div class="score" id="score"></div>
+  </header>
+
+  <main class="layout">
+    <section class="board-wrap" aria-label="Bàn cờ">
+      <div class="side-tag p2"><b id="tagTop"></b><span>Nửa bàn trên</span></div>
+      <div class="board-frame"><div class="board" id="board"></div></div>
+      <div class="side-tag p1"><b id="tagBot"></b><span>Nửa bàn dưới</span></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </main>
+
+  <section class="rules" id="rules"></section>
+</div>
+<div id="overlay" hidden></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const rnd = Math.random;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const EL = {
+  kim:{name:'KIM',c:'ek'}, moc:{name:'MỘC',c:'em'}, thuy:{name:'THỦY',c:'et'},
+  hoa:{name:'HỎA',c:'eh'}, tho:{name:'THỔ',c:'eo'}
+};
+const KHAC = {kim:'moc', moc:'tho', tho:'thuy', thuy:'hoa', hoa:'kim'};
+const ENEMY = {meo:'chuot', ho:'de', ga:'ran', cho:'meo'};
+const SKILLS = [
+  {name:'Cắn', icon:'🦷', verb:'cắn'},
+  {name:'Chém', icon:'⚔️', verb:'chém'},
+  {name:'Húc', icon:'💥', verb:'húc'},
+  {name:'Lăn tròn', icon:'🔄', verb:'lăn tròn đè'},
+  {name:'Song phi', icon:'🦶', verb:'tung song phi vào'},
+  {name:'Lốc xoáy', icon:'🌪️', verb:'cuốn lốc xoáy vào'},
+];
+const skillBeats = (a, b) => { const d = (b - a + 6) % 6; return d === 1 || d === 2; };
+const STAR_ATK = [0,10,13,16,19,22,26];
+const STAR_HP  = [0,70,85,100,115,130,150];
+const ORDER = ['chuot','trau','ho','meo','rong','ran','ngua','de','khi','ga','cho','lon'];
+const ANIMALS = {
+  chuot:{name:'Chuột',emoji:'🐀',el:'thuy',atk:1.0,hp:0.9,spd:9,skill:'Lanh lợi',desc:'Né được 25% đòn đánh.'},
+  trau:{name:'Trâu',emoji:'🐃',el:'tho',atk:0.95,hp:1.2,spd:3,skill:'Da dày',desc:'Giảm 25% sát thương phải nhận.'},
+  ho:{name:'Hổ',emoji:'🐅',el:'moc',atk:1.2,hp:1.0,spd:7,skill:'Chúa sơn lâm',desc:'Đòn đầu tiên gây gấp đôi sát thương.'},
+  meo:{name:'Mèo',emoji:'🐈',el:'moc',atk:1.0,hp:0.95,spd:8,skill:'Chín mạng',desc:'Lần đầu gục ngã thì đứng dậy với 30% máu.'},
+  rong:{name:'Rồng',emoji:'🐉',el:'tho',atk:1.1,hp:1.1,spd:6,skill:'Long uy',desc:'Đối thủ bị giảm 1 sao trước trận (thấp nhất 1 sao).'},
+  ran:{name:'Rắn',emoji:'🐍',el:'hoa',atk:0.95,hp:0.95,spd:7,skill:'Nọc độc',desc:'Mỗi đòn trúng thêm 1 lớp độc, mỗi lớp mất 3 máu/hiệp.'},
+  ngua:{name:'Ngựa',emoji:'🐎',el:'hoa',atk:1.05,hp:1.0,spd:10,skill:'Tốc mã',desc:'30% cơ hội đánh liền 2 đòn.'},
+  de:{name:'Dê',emoji:'🐐',el:'tho',atk:0.9,hp:1.15,spd:4,skill:'Hồi sức',desc:'Cuối mỗi hiệp hồi 6% máu tối đa.'},
+  khi:{name:'Khỉ',emoji:'🐒',el:'kim',atk:1.07,hp:0.95,spd:9,skill:'Biến hóa',desc:'Nếu đòn bị khắc, tự đổi sang đòn khắc lại đối thủ.'},
+  ga:{name:'Gà trống',emoji:'🐓',el:'kim',atk:0.95,hp:0.95,spd:8,skill:'Gáy sáng',desc:'Sức mạnh tăng 10% sau mỗi hiệp.'},
+  cho:{name:'Chó',emoji:'🐕',el:'tho',atk:1.0,hp:1.05,spd:6,skill:'Trung thành',desc:'Khi máu dưới 35%, sức mạnh +50%.'},
+  lon:{name:'Lợn',emoji:'🐖',el:'thuy',atk:0.95,hp:1.3,spd:3,skill:'Ăn khỏe',desc:'Một lần khi máu dưới 50%: hồi 15% máu.'},
+};
+const TIER = {rong:5,ho:5,ngua:4,meo:4,ran:4,trau:4,cho:3,ga:3,lon:3,khi:3,chuot:3,de:2};
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+const DEFAULT_NAMES = ['Người chơi 1','Người chơi 2'];
+const P = [{name:DEFAULT_NAMES[0],cls:'p1'},{name:DEFAULT_NAMES[1],cls:'p2'}];
+const savedNames = (() => { try { return JSON.parse(localStorage.getItem('gsv-names')) || {}; } catch(e){ return {}; } })();
+const nm = i => esc(P[i].name);
+
+let S;
+let SKIP = false;
+
+/* ---------- Online (PeerJS, host giữ ván) ---------- */
+const IN_FRAME = (() => { try { return window.self !== window.top; } catch(e){ return true; } })();
+let NET = {role:null, peer:null, conn:null, code:null, ready:false, err:null, leaving:false, timer:null};
+let guestQ = Promise.resolve();
+const ME = () => NET.role==='guest' ? 1 : 0;
+function canAct(p){ if (p==null) return false; if (S.mode==='online') return p===ME(); return !S.players[p].ai; }
+function request(m){ if (NET.role==='guest'){ if (NET.conn && NET.conn.open) NET.conn.send(m); return true; } return false; }
+function netSend(m){ if (NET.role==='host' && NET.conn && NET.conn.open) NET.conn.send(m); }
+function snapshot(){
+  const c = JSON.parse(JSON.stringify(S)); delete c.current; delete c.selected; delete c.aiKey;
+  if (c.phase==='place'){
+    const mine = c.pieces.find(p => p.owner===0 && p.round===c.round);
+    if (mine){ c.players[0].used = c.players[0].used.filter(id => id!==mine.animal); mine.animal=null; mine.hidden=true; }
+  }
+  return c;
+}
+function sync(){ netSend({t:'state', S:snapshot(), names:[P[0].name, P[1].name]}); }
+function loadPeer(){
+  if (window.Peer) return Promise.resolve();
+  return new Promise((res,rej) => { const s=document.createElement('script'); s.src='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'; s.onload=res; s.onerror=()=>rej(new Error('load')); document.head.appendChild(s); });
+}
+function randomCode(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<6;i++) s+=A[Math.floor(rnd()*A.length)]; return s; }
+function myName(){ const v=($('#name0')?.value||'').trim(); savedNames.p0=v; try{localStorage.setItem('gsv-names',JSON.stringify(savedNames));}catch(e){} return v; }
+function leaveOnline(){
+  NET.leaving=true; clearTimeout(NET.timer);
+  try{ NET.conn && NET.conn.close(); }catch(e){} try{ NET.peer && NET.peer.destroy(); }catch(e){}
+  NET={role:null, peer:null, conn:null, code:null, ready:false, err:null, leaving:false, timer:null}; guestQ=Promise.resolve();
+}
+function netFail(msg){
+  leaveOnline(); NET.err=msg; S.phase='netfail'; $('#overlay').hidden=true; render();
+}
+function netLost(){
+  if (NET.leaving) return;
+  const ov=$('#overlay');
+  ov.innerHTML=`<div class="ov-card" data-lost role="dialog" aria-label="Mất kết nối"><div class="ov-emo">📡</div><h2>Mất kết nối với đối thủ</h2>
+    <p>Đối thủ đã rời phòng hoặc mạng bị gián đoạn.</p><div class="btns"><button class="btn" data-act="menu">Về màn hình chính</button></div></div>`;
+  ov.hidden=false;
+}
+function netErrText(e){
+  if (e && e.type==='peer-unavailable') return 'Không tìm thấy phòng có mã này. Kiểm tra lại mã hoặc nhờ bạn tạo phòng mới.';
+  if (e && (e.type==='network' || e.type==='server-error' || e.type==='socket-error')) return 'Không kết nối được máy chủ ghép phòng. Kiểm tra mạng rồi thử lại.';
+  if (e && e.type==='browser-incompatible') return 'Trình duyệt này không hỗ trợ đấu online. Hãy dùng Chrome, Edge, Firefox hoặc Safari bản mới.';
+  return 'Kết nối gặp lỗi. Thử lại nhé.';
+}
+function armTimeout(){ clearTimeout(NET.timer); NET.timer=setTimeout(()=>{ if (!NET.conn || !NET.conn.open) netFail('Kết nối quá lâu không thành công. Có thể mạng của một trong hai bên chặn kết nối trực tiếp; thử mạng khác (ví dụ 4G) nhé.'); }, 20000); }
+async function hostRoom(){
+  leaveOnline(); NET.role='host';
+  P[0].name = myName() || DEFAULT_NAMES[0]; P[1].name = 'Đang chờ…';
+  S.phase='lobby'; render();
+  try { await loadPeer(); } catch(e){ return netFail('Không tải được thư viện kết nối. Kiểm tra mạng rồi thử lại.'); }
+  const code=randomCode(), peer=new Peer('gsv-'+code);
+  NET.peer=peer; NET.code=code;
+  peer.on('open',()=>{ NET.ready=true; if (S.phase==='lobby') renderPanel(); });
+  peer.on('error',e=>{ if (e.type==='unavailable-id') { hostRoom(); return; } if (!NET.conn) netFail(netErrText(e)); });
+  peer.on('connection',conn=>{
+    if (NET.conn){ conn.on('open',()=>conn.close()); return; }
+    NET.conn=conn;
+    conn.on('data',m=>{ if (NET.conn!==conn) return; try{ onHostData(m); }catch(err){ console.error(err); } });
+    conn.on('close',()=>{ if (NET.conn===conn) netLost(); });
+  });
+}
+function onHostData(m){
+  if (!m || typeof m!=='object') return;
+  if (m.t==='hello'){
+    clearTimeout(NET.timer);
+    P[1].name = String(m.name||'').trim().slice(0,16) || DEFAULT_NAMES[1];
+    if (P[1].name===P[0].name) P[1].name += ' (2)';
+    newGame('online'); return;
+  }
+  if (S.mode!=='online') return;
+  if (m.t==='pick' && S.phase==='draft' && actor()===1 && ORDER.includes(m.id)) pick(1,m.id);
+  else if (m.t==='place' && S.phase==='place' && !S.current[1] && handLeft(1).includes(m.id) && isFree(1,+m.r,+m.c)) placePiece(1,m.id,+m.r,+m.c);
+  else if (m.t==='roll' && S.phase==='roll' && S.rollSteps[S.rollIdx] && S.rollSteps[S.rollIdx].p===1) doRoll();
+  else if (m.t==='fight') startBattle();
+  else if (m.t==='next' && S.phase==='result') nextRound();
+  else if (m.t==='again' && S.phase==='end'){ $('#overlay').hidden=true; newGame('online'); }
+}
+async function joinRoom(){
+  const code=($('#roomCode')?.value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if (code.length!==6){ const i=$('#roomCode'); if(i){ i.focus(); i.setAttribute('aria-invalid','true'); } $('#joinHint').textContent='Mã phòng gồm 6 ký tự, ví dụ K7MQ2X.'; return; }
+  const name = myName() || DEFAULT_NAMES[1];
+  leaveOnline(); NET.role='guest'; NET.code=code;
+  S.phase='joining'; render();
+  try { await loadPeer(); } catch(e){ return netFail('Không tải được thư viện kết nối. Kiểm tra mạng rồi thử lại.'); }
+  const peer=new Peer(); NET.peer=peer; armTimeout();
+  peer.on('open',()=>{
+    const conn=peer.connect('gsv-'+code,{reliable:true}); NET.conn=conn;
+    conn.on('open',()=>{ clearTimeout(NET.timer); conn.send({t:'hello',name}); });
+    conn.on('data',m=>{ if (NET.conn!==conn) return; guestQ=guestQ.then(()=>handleGuest(m)).catch(err=>console.error(err)); });
+    conn.on('close',()=>{ if (NET.conn===conn) netLost(); });
+  });
+  peer.on('error',e=>{ if (!(NET.conn && NET.conn.open)) netFail(netErrText(e)); });
+}
+async function handleGuest(m){
+  if (!m || typeof m!=='object') return;
+  if (m.t==='state'){
+    const keepSel = S && S.selected;
+    S = m.S; S.mode='online';
+    P[0].name=m.names[0]; P[1].name=m.names[1];
+    S.current=[0,1].map(p => S.phase==='draft' ? null : (S.pieces.find(x => x.owner===p && x.round===S.round) || null));
+    S.selected = (S.phase==='place' && !S.current[1] && keepSel && handLeft(1).includes(keepSel)) ? keepSel : null;
+    render();
+    if (S.phase==='end') showEnd(); else if (!$('#overlay').querySelector('[data-lost]')) $('#overlay').hidden=true;
+  } else if (m.t==='anim' && $('#die')){
+    S.busy=true; updateRollUI();
+    if (m.k==='dice') await animateDie(m.v); else await spinWheel(m.v);
+  } else if (m.t==='battle'){
+    S.res=m.res; S.phase='battle'; S.busy=true; S.logLines=[];
+    renderBoard(); renderPanel();
+    await playBattle(S.res);
+  }
+}
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function genTerrain(){
+  const b = [...Array(7)].map(() => Array(7).fill(null));
+  const keys = Object.keys(EL);
+  const cells = [];
+  for (let r=4;r<7;r++) for (let c=0;c<7;c++) cells.push([r,c]);
+  shuffle(cells);
+  for (let i=0;i<10;i++){ const [r,c]=cells[i]; b[r][c]=keys[i%5]; }
+  for (let r=4;r<7;r++) for (let c=0;c<7;c++) b[6-r][6-c]=b[r][c];
+  for (let c=0;c<7;c++) b[3][c]='river';
+  return b;
+}
+function blankPlayers(ai){ return [{hand:[],used:[],wins:0,ai:false},{hand:[],used:[],wins:0,ai:!!ai}]; }
+
+function initMenu(){
+  leaveOnline();
+  S = {phase:'menu', mode:null, board:genTerrain(), players:blankPlayers(false), pieces:[], round:0, wheelRot:0};
+  P[0].name = savedNames.p0 || DEFAULT_NAMES[0];
+  P[1].name = savedNames.p1 || DEFAULT_NAMES[1];
+  render();
+}
+function readNames(mode){
+  const v0 = ($('#name0')?.value || '').trim(), v1 = ($('#name1')?.value || '').trim();
+  P[0].name = v0 || DEFAULT_NAMES[0];
+  if (mode==='ai') P[1].name = 'Máy';
+  else P[1].name = v1 || DEFAULT_NAMES[1];
+  if (P[0].name===P[1].name) P[1].name += ' (2)';
+  savedNames.p0 = v0; if (mode!=='ai') savedNames.p1 = v1;
+  try { localStorage.setItem('gsv-names', JSON.stringify(savedNames)); } catch(e){}
+}
+function newGame(mode){
+  S = {mode, phase:'draft', board:genTerrain(), players:blankPlayers(mode==='ai'), pieces:[],
+    draftOrder:[0,1,1,0,0,1,1,0,0,1], draftIdx:0, taken:{}, round:0, placeOrder:[0,1], placeStep:0,
+    selected:null, current:[null,null], rollSteps:[], rollIdx:0, busy:false, wheelRot:0, logLines:[]};
+  render(); maybeAI();
+}
+
+function actor(){
+  if (S.phase==='draft') return S.draftOrder[S.draftIdx];
+  if (S.phase==='place'){
+    if (S.mode==='online') return S.current[ME()] ? 1-ME() : ME();
+    return S.placeOrder[S.placeStep];
+  }
+  if (S.phase==='roll') return S.rollSteps[S.rollIdx] ? S.rollSteps[S.rollIdx].p : null;
+  return null;
+}
+const isAI = p => p!=null && S.players[p].ai;
+const sideRows = owner => owner===0 ? [4,5,6] : [0,1,2];
+const pieceAt = (r,c) => S.pieces.find(p => p.r===r && p.c===c);
+function isFree(owner,r,c){ return sideRows(owner).includes(r) && !pieceAt(r,c); }
+function freeCells(owner){ const out=[]; for(const r of sideRows(owner)) for(let c=0;c<7;c++) if(!pieceAt(r,c)) out.push([r,c]); return out; }
+const handLeft = p => S.players[p].hand.filter(id => !S.players[p].used.includes(id));
+
+/* ---------- Draft ---------- */
+function pick(owner,id){
+  if (S.taken[id]!==undefined) return;
+  S.taken[id]=owner; S.players[owner].hand.push(id); S.draftIdx++;
+  if (S.draftIdx>=S.draftOrder.length) startRound(1);
+  else { render(); maybeAI(); }
+}
+function aiDraft(){
+  const avail = ORDER.filter(id => S.taken[id]===undefined);
+  const opp = S.players[0].hand;
+  let best=null, bs=-1;
+  for (const id of avail){
+    const a=ANIMALS[id];
+    const counters = opp.some(o => KHAC[a.el]===ANIMALS[o].el || ENEMY[id]===o) ? 1 : 0;
+    const s = TIER[id] + counters + rnd()*2;
+    if (s>bs){bs=s;best=id;}
+  }
+  return best;
+}
+
+/* ---------- Round & placement ---------- */
+function startRound(n){
+  S.round=n; S.placeOrder = n%2===1 ? [0,1] : [1,0];
+  S.current=[null,null]; S.placeStep=0; S.selected=null; S.phase='place';
+  render(); maybeAI();
+}
+function placePiece(owner,id,r,c){
+  const pc={owner,animal:id,r,c,round:S.round,stars:null,skill:null,status:'fighting'};
+  S.pieces.push(pc); S.current[owner]=pc; S.players[owner].used.push(id);
+  if (S.mode!=='online' || owner===ME()) S.selected=null;
+  S.placeStep++;
+  if (S.placeStep>=2) startRoll(); else { render(); maybeAI(); }
+}
+function winRate(id,cell,oppList,owner,N){
+  let sc=0,n=0;
+  for (const o of oppList) for (let i=0;i<N;i++){
+    const me={animal:id,r:cell[0],c:cell[1],stars:1+Math.floor(rnd()*6),skill:Math.floor(rnd()*6)};
+    const op={animal:o.animal,r:o.r,c:o.c,stars:1+Math.floor(rnd()*6),skill:Math.floor(rnd()*6)};
+    const res = owner===0 ? simulate(me,op) : simulate(op,me);
+    sc += res.winner===owner ? 1 : res.winner===null ? .5 : 0; n++;
+  }
+  return sc/n;
+}
+function aiPlace(owner){
+  const opp=1-owner, free=freeCells(owner), oppPc=S.current[opp];
+  const oppList = oppPc ? [oppPc] : handLeft(opp).map(id => ({animal:id,r:-1,c:-1}));
+  let best=null;
+  for (const id of handLeft(owner)){
+    const el=ANIMALS[id].el, good=free.filter(([r,c]) => S.board[r][c]===el);
+    const pool = good.length ? good : free;
+    const cell = pool[Math.floor(rnd()*pool.length)];
+    const s = winRate(id,cell,oppList,owner,oppPc?40:14) + rnd()*0.05;
+    if (!best || s>best.s) best={id,r:cell[0],c:cell[1],s};
+  }
+  return best;
+}
+
+/* ---------- Rolling ---------- */
+function startRoll(){
+  S.phase='roll';
+  const [f,s]=S.placeOrder;
+  S.rollSteps=[{p:f,k:'dice'},{p:f,k:'wheel'},{p:s,k:'dice'},{p:s,k:'wheel'}];
+  S.rollIdx=0; S.busy=false;
+  render(); maybeAI();
+}
+function setDie(v){ const on=PIPS[v]; document.querySelectorAll('#die .pip').forEach((p,i)=>p.classList.toggle('on',on.includes(i))); }
+async function animateDie(v){
+  const d=$('#die'); d.classList.add('rolling');
+  const n = RM ? 3 : 13;
+  for (let i=0;i<n;i++){ setDie(1+Math.floor(rnd()*6)); await sleep(70); }
+  setDie(v); d.classList.remove('rolling'); await sleep(300);
+}
+async function spinWheel(k){
+  const target=(360-(k*60+30))%360, cur=((S.wheelRot%360)+360)%360;
+  S.wheelRot += 360*(RM?1:5) + ((target-cur+360)%360);
+  $('#wheel').style.transform=`rotate(${S.wheelRot}deg)`;
+  await sleep(RM?450:2350);
+}
+async function doRoll(){
+  if (S.busy || S.phase!=='roll' || S.rollIdx>=4) return;
+  S.busy=true;
+  const st=S.rollSteps[S.rollIdx], pc=S.current[st.p];
+  updateRollUI();
+  if (st.k==='dice'){ const v=1+Math.floor(rnd()*6); netSend({t:'anim',k:'dice',v}); await animateDie(v); pc.stars=v; }
+  else { const k=Math.floor(rnd()*6); netSend({t:'anim',k:'wheel',v:k}); await spinWheel(k); pc.skill=k; }
+  S.rollIdx++; S.busy=false;
+  renderBoard(); updateRollUI(); sync(); maybeAI();
+}
+
+/* ---------- Battle simulation ---------- */
+function simulate(p0,p1){
+  const F=[p0,p1].map(pc => { const a=ANIMALS[pc.animal];
+    return {id:pc.animal,a,name:a.name,stars:pc.stars,baseStars:pc.stars,skill:pc.skill,baseSkill:pc.skill,
+      terr: pc.r>=0 && S.board[pc.r][pc.c]===a.el, poison:0, revived:false, ate:false, hits:0}; });
+  const intro=[];
+  F.forEach((f,i)=>{ const o=F[1-i]; if (f.id==='rong' && o.stars>1){ o.stars--; intro.push({type:'info',who:i,text:`Long uy! ${o.name} bị áp chế, chỉ còn ${o.stars} sao.`}); } });
+  F.forEach((f,i)=>{ const o=F[1-i]; if (f.id==='khi' && skillBeats(o.skill,f.skill)){ f.skill=(o.skill+5)%6; intro.push({type:'info',who:i,text:`Biến hóa! Khỉ đổi sang ${SKILLS[f.skill].name}.`}); } });
+  F.forEach(f=>{ const t=f.terr?1.15:1; f.maxHp=Math.round(STAR_HP[f.stars]*f.a.hp*t); f.hp=f.maxHp; f.atk=STAR_ATK[f.stars]*f.a.atk*t; });
+  const mult=[0,1].map(i=>{ const f=F[i],o=F[1-i]; let m=1; const tags=[];
+    if (KHAC[f.a.el]===o.a.el){ m*=1.25; tags.push(`${EL[f.a.el].name} khắc ${EL[o.a.el].name}`); }
+    if (ENEMY[f.id]===o.id){ m*=1.2; tags.push(`thiên địch của ${o.name}`); }
+    if (skillBeats(f.skill,o.skill)){ m*=1.3; tags.push(`${SKILLS[f.skill].name} khắc ${SKILLS[o.skill].name}`); }
+    if (f.terr) tags.push(`đứng trên đất ${EL[f.a.el].name} (+15%)`);
+    if (tags.length) intro.push({type:'info',who:i,text:`${f.name}: ${tags.join(', ')}.`});
+    return m; });
+  const ev=[]; const push=o=>ev.push({...o,hp:[F[0].hp,F[1].hp]});
+  intro.forEach(push);
+  const order = F[0].a.spd===F[1].a.spd ? (rnd()<.5?[0,1]:[1,0]) : (F[0].a.spd>F[1].a.spd?[0,1]:[1,0]);
+  push({type:'info',who:order[0],text:`${F[order[0]].name} nhanh hơn, ra đòn trước.`});
+  const dead=()=>F[0].hp<=0||F[1].hp<=0;
+  function after(D,di){
+    if (D.hp<=0 && D.id==='meo' && !D.revived){ D.revived=true; D.hp=Math.round(D.maxHp*.3); push({type:'heal',target:di,amt:D.hp,text:`Chín mạng! Mèo đứng dậy với ${D.hp} máu.`}); return; }
+    if (D.hp>0 && D.id==='lon' && !D.ate && D.hp<D.maxHp*.5){ D.ate=true; const h=Math.min(D.maxHp-D.hp,Math.round(D.maxHp*.15)); D.hp+=h; push({type:'heal',target:di,amt:h,text:`Ăn khỏe! Lợn hồi ${h} máu.`}); return; }
+    if (D.hp<=0) push({type:'ko',target:di,text:`${D.name} gục ngã!`});
+  }
+  function strike(k,t){
+    const A=F[k],D=F[1-k];
+    if (D.id==='chuot' && rnd()<.25){ push({type:'miss',who:k,target:1-k,text:`Chuột lanh lợi né được đòn ${SKILLS[A.skill].name.toLowerCase()}!`}); return; }
+    let m=mult[k]*(0.85+rnd()*.3); const notes=[];
+    if (A.id==='ho' && A.hits===0){ m*=2; notes.push('Chúa sơn lâm ×2'); }
+    if (A.id==='ga' && t>1) m*=1+.1*(t-1);
+    if (A.id==='cho' && A.hp<A.maxHp*.35){ m*=1.5; notes.push('Trung thành +50%'); }
+    if (D.id==='trau') m*=.75;
+    const dmg=Math.max(1,Math.round(A.atk*m)); A.hits++;
+    D.hp=Math.max(0,D.hp-dmg);
+    if (A.id==='ran') D.poison++;
+    push({type:'hit',who:k,target:1-k,amt:dmg,text:`${A.name} ${SKILLS[A.skill].verb} ${D.name}: −${dmg}${notes.length?` (${notes.join(', ')})`:''}`});
+    after(D,1-k);
+  }
+  for (let t=1;t<=30 && !dead();t++){
+    for (const k of order){
+      if (dead()) break;
+      const extra = F[k].id==='ngua' && rnd()<.3;
+      strike(k,t);
+      if (extra && !dead()){ push({type:'info',who:k,text:'Tốc mã! Ngựa đánh thêm một đòn.'}); strike(k,t); }
+    }
+    if (dead()) break;
+    for (const i of [0,1]){
+      const f=F[i]; if (f.hp<=0) continue;
+      if (f.poison>0){ const d=3*f.poison; f.hp=Math.max(0,f.hp-d); push({type:'poison',target:i,amt:d,text:`${f.name} ngấm độc, mất ${d} máu.`}); after(f,i); }
+      if (f.hp>0 && f.id==='de' && f.hp<f.maxHp){ const h=Math.min(f.maxHp-f.hp,Math.round(f.maxHp*.06)); f.hp+=h; push({type:'heal',target:i,amt:h,text:`Dê hồi sức +${h} máu.`}); }
+    }
+  }
+  const a0=F[0].hp>0, a1=F[1].hp>0; let winner;
+  if (a0&&!a1) winner=0; else if (a1&&!a0) winner=1; else if (!a0&&!a1) winner=null;
+  else { const r0=F[0].hp/F[0].maxHp, r1=F[1].hp/F[1].maxHp; winner=r0>r1?0:r1>r0?1:null; push({type:'info',text:'Hết 30 hiệp! Bên còn nhiều máu hơn thắng.'}); }
+  return {F,ev,winner};
+}
+
+/* ---------- Battle playback ---------- */
+async function startBattle(){
+  if (S.phase!=='roll' || S.rollIdx<4 || S.busy) return;
+  S.phase='battle'; S.busy=true; S.logLines=[];
+  S.res = simulate(S.current[0],S.current[1]);
+  netSend({t:'battle', res:S.res});
+  renderBoard(); renderPanel();
+  await playBattle(S.res);
+  finishBattle();
+}
+async function playBattle(res){
+  SKIP=false;
+  const spd = RM ? 220 : 560;
+  for (const ev of res.ev){
+    if (!SKIP) await sleep(ev.type==='info' ? spd*.75 : spd);
+    applyEvent(ev, !SKIP);
+  }
+  if (!SKIP) await sleep(400);
+}
+function setHp(i,hp){
+  const f=S.res.F[i], pct=Math.max(0,hp/f.maxHp*100), b=$('#hpb'+i);
+  if (!b) return;
+  b.style.width=pct+'%'; b.classList.toggle('low',pct<35);
+  $('#hpt'+i).textContent=`${hp}/${f.maxHp}`;
+}
+function logClass(ev){
+  const side = (ev.type==='hit'||ev.type==='miss') ? ev.who : (ev.target ?? ev.who);
+  return `${ev.type} ${side!=null && ev.type!=='info' ? P[side].cls : ''}`;
+}
+function addLog(ev){
+  const li=`<li class="${logClass(ev)}">${ev.text}</li>`;
+  S.logLines.push(li);
+  const log=$('#log'); if (!log) return;
+  log.insertAdjacentHTML('beforeend',li); log.scrollTop=log.scrollHeight;
+}
+function floatText(i,txt,cls){
+  const f=$('#ft'+i); if (!f) return;
+  const el=document.createElement('span'); el.className='float '+cls; el.textContent=txt;
+  f.appendChild(el); setTimeout(()=>el.remove(),950);
+}
+function bump(i,cls,ms){ const f=$('#ft'+i); if(!f) return; f.classList.remove(cls); void f.offsetWidth; f.classList.add(cls); setTimeout(()=>f.classList.remove(cls),ms); }
+function applyEvent(ev,anim){
+  setHp(0,ev.hp[0]); setHp(1,ev.hp[1]); addLog(ev);
+  if (ev.type==='ko') $('#ft'+ev.target)?.classList.add('ko');
+  if (ev.type==='heal' && ev.hp[ev.target]>0) $('#ft'+ev.target)?.classList.remove('ko');
+  if (!anim) return;
+  if (ev.type==='hit'){ bump(ev.who, ev.who===0?'lunge-l':'lunge-r', 180); bump(ev.target,'shake',330); floatText(ev.target,'−'+ev.amt,'dmg'); }
+  else if (ev.type==='miss') floatText(ev.target,'Né!','miss');
+  else if (ev.type==='heal') floatText(ev.target,'+'+ev.amt,'heal');
+  else if (ev.type==='poison') floatText(ev.target,'−'+ev.amt,'poison');
+}
+function finishBattle(){
+  const w=S.res.winner;
+  for (const p of [0,1]) S.current[p].status = w===null ? 'draw' : (w===p ? 'won' : 'lost');
+  if (w!==null) S.players[w].wins++;
+  S.busy=false; S.phase='result';
+  renderScore(); renderBoard(); renderResultCtl(); sync();
+}
+function isOver(){ return S.players[0].wins>=3 || S.players[1].wins>=3 || S.round>=5; }
+function nextRound(){ if (isOver()) endGame(); else startRound(S.round+1); }
+function endGame(){
+  S.phase='end';
+  showEnd(); sync();
+}
+function showEnd(){
+  const [w0,w1]=[S.players[0].wins,S.players[1].wins];
+  const w = w0>w1?0:w1>w0?1:null;
+  const title = w===null ? 'Hòa chung cuộc!' : (S.mode==='ai' && w===1 ? 'Máy thắng rồi!' : `${nm(w)} thắng chung cuộc!`);
+  const ov=$('#overlay');
+  ov.innerHTML=`<div class="ov-card" role="dialog" aria-label="Kết quả">
+    <div class="ov-emo">${w===null?'🤝':'🏆'}</div><h2>${title}</h2>
+    <p>${nm(0)} ${w0} – ${w1} ${nm(1)}</p>
+    <div class="btns"><button class="btn" data-act="again">Chơi ván mới</button><button class="btn ghost" data-act="menu">Đổi người chơi</button></div></div>`;
+  ov.hidden=false; renderScore(); renderPanel();
+}
+
+/* ---------- AI driver ---------- */
+function maybeAI(){
+  if (S.mode!=='ai') return;
+  const a=actor(); if (a!==1) return;
+  const ph=S.phase, key=`${ph}-${S.draftIdx}-${S.placeStep}-${S.rollIdx}-${S.round}`;
+  if (S.aiKey===key) return; S.aiKey=key;
+  if (ph==='draft') setTimeout(()=>{ if(S.phase==='draft' && actor()===1) pick(1,aiDraft()); }, 650);
+  else if (ph==='place') setTimeout(()=>{ if(S.phase==='place' && actor()===1){ const m=aiPlace(1); placePiece(1,m.id,m.r,m.c);} }, 850);
+  else if (ph==='roll') setTimeout(doRoll, 650);
+}
+
+/* ---------- Rendering ---------- */
+const starStr = n => `<span class="stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(6-n)}</span></span>`;
+const elTag = el => `<i class="elc ${EL[el].c}">${EL[el].name}</i>`;
+function render(){ renderScore(); renderBoard(); renderPanel(); sync(); }
+const waitText = (p, verb) => S.mode==='ai' ? `Máy đang ${verb}…` : `Đang chờ ${nm(p)} ${verb}…`;
+
+function renderScore(){
+  const pips = w => [0,1,2].map(i=>`<i class="${i<w?'on':''}"></i>`).join('');
+  const mid = ['menu','lobby','joining','netfail'].includes(S.phase) ? 'Chờ<br>bắt đầu' : S.phase==='draft' ? 'Bốc<br>tướng' : S.phase==='end' ? 'Hết<br>ván' : `Vòng<br>${S.round}/5`;
+  const you = i => S.mode==='online' && ME()===i ? '<small class="you">bạn</small>' : '';
+  $('#score').innerHTML = `<div class="sc p1"><b title="${nm(0)}">${nm(0)}</b>${you(0)}<span class="pips" aria-label="${S.players[0].wins} trận thắng">${pips(S.players[0].wins)}</span></div>
+    <div class="sc-mid">${mid}</div>
+    <div class="sc p2"><b title="${nm(1)}">${nm(1)}</b>${you(1)}<span class="pips" aria-label="${S.players[1].wins} trận thắng">${pips(S.players[1].wins)}</span></div>`;
+  $('#tagTop').textContent=P[1].name; $('#tagBot').textContent=P[0].name;
+}
+
+function renderBoard(){
+  const a=actor();
+  const placing = S.phase==='place' && canAct(a) && S.selected;
+  const selEl = placing ? ANIMALS[S.selected].el : null;
+  let h='';
+  for (let r=0;r<7;r++){
+    if (r===3){ h+=`<div class="river" aria-label="Dải cát chia đôi bàn cờ"><span>ANIMALS ANGRY</span></div>`; continue; }
+    for (let c=0;c<7;c++){
+      const t=S.board[r][c], pc=pieceAt(r,c);
+      const valid = placing && isFree(a,r,c);
+      const cls = ['cell', t?'t-'+t:'', valid?'valid':'', valid && t===selEl ? 'bonus':''].join(' ');
+      const label = t ? `Đất ${EL[t].name}` : 'Ô trống';
+      const hid = pc && (pc.hidden || !pc.animal || (S.mode==='online' && S.phase==='place' && pc.round===S.round && pc.owner!==ME()));
+      h += `<div class="${cls}" data-r="${r}" data-c="${c}" ${valid?'tabindex="0" role="button"':''} aria-label="${label}${pc?', '+(hid?'quân đang giấu':ANIMALS[pc.animal].name):''}">`;
+      if (t) h += `<span class="glyph">${EL[t].name}</span>`;
+      if (hid){
+        h += `<div class="piece ${P[pc.owner].cls}" title="Quân đang giấu">❓</div>`;
+      } else if (pc){
+        const a2=ANIMALS[pc.animal];
+        h += `<div class="piece ${P[pc.owner].cls} ${pc.status}" title="${a2.name}${pc.stars?' · '+pc.stars+' sao':''}">${a2.emoji}${pc.stars?`<span class="ps">${pc.stars}★</span>`:''}</div>`;
+      }
+      h += `</div>`;
+    }
+  }
+  $('#board').innerHTML=h;
+}
+
+function cardHTML(id,{mode,disabled,sel,owner,gone}){
+  const a=ANIMALS[id];
+  const data = mode==='pick' ? `data-pick="${id}"` : `data-sel="${id}"`;
+  return `<button class="card ${sel?'sel':''} ${gone?'gone':''}" ${data} ${disabled?'disabled':''} aria-pressed="${!!sel}">
+    ${owner!=null?`<span class="own ${P[owner].cls}">${nm(owner)}</span>`:''}
+    <span class="emo">${a.emoji}</span>
+    <span class="nm">${a.name} ${elTag(a.el)}</span>
+    <span class="sk">${a.skill} · tốc ${a.spd}</span>
+    <span class="ds">${a.desc}</span></button>`;
+}
+function matchup(id,oppId){
+  const m=ANIMALS[id], o=ANIMALS[oppId], out=[];
+  if (KHAC[m.el]===o.el) out.push(['good',`Khắc hệ ${EL[o.el].name} +25%`]);
+  if (KHAC[o.el]===m.el) out.push(['bad',`Bị hệ ${EL[o.el].name} khắc`]);
+  if (ENEMY[id]===oppId) out.push(['good','Thiên địch +20%']);
+  if (ENEMY[oppId]===id) out.push(['bad',`Gặp thiên địch ${o.name}`]);
+  if (oppId==='rong') out.push(['bad','Bị Long uy −1 sao']);
+  if (id==='rong') out.push(['good','Long uy: đối thủ −1 sao']);
+  if (m.spd>o.spd) out.push(['good','Ra đòn trước']); else if (m.spd<o.spd) out.push(['bad','Ra đòn sau']);
+  return out;
+}
+
+function renderPanel(){
+  const el=$('#panel'), a=actor();
+  if (S.phase==='menu'){
+    el.innerHTML=`<div class="phase-head"><span class="tag">Bắt đầu</span><h2>Ai đấu với ai?</h2></div>
+      <div class="names">
+        <label class="field p1" for="name0">Người chơi 1 <small>nửa bàn dưới</small><input id="name0" maxlength="16" autocomplete="off" placeholder="${DEFAULT_NAMES[0]}" value="${esc(savedNames.p0||'')}"></label>
+        <label class="field p2" for="name1">Người chơi 2 <small>nửa bàn trên</small><input id="name1" maxlength="16" autocomplete="off" placeholder="${DEFAULT_NAMES[1]}" value="${esc(savedNames.p1||'')}"></label>
+      </div>
+      <div class="btns"><button class="btn" data-act="mode2">Đấu 2 người · cùng máy</button><button class="btn ghost" data-act="modeAI">Người chơi 1 đấu với máy</button></div>
+      <div class="online">
+        <h3>Đấu online · mỗi người một máy</h3>
+        ${IN_FRAME ? `<p class="hint">Chế độ online không chạy trong trang xem trước này. Hãy mở game từ file HTML hoặc trang web riêng (ví dụ Netlify) để đấu online.</p>` : `
+        <p class="hint">Tên của bạn lấy từ ô <b>Người chơi 1</b>. Một người tạo phòng rồi gửi mã cho người kia.</p>
+        <div class="btns"><button class="btn" data-act="host">Tạo phòng</button></div>
+        <div class="join"><label class="sr" for="roomCode">Mã phòng</label><input id="roomCode" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Nhập mã phòng"><button class="btn ghost" data-act="join">Vào phòng</button></div>
+        <p class="hint" id="joinHint" aria-live="polite"></p>`}
+      </div>
+      <p class="hint">Mỗi bên bốc 5 tướng từ 12 con giáp. Mỗi vòng, hai bên đặt một tướng lên bàn, tung xúc xắc lấy số sao, quay vòng lấy đòn đánh, rồi cho hai con vật lao vào giao tranh.</p>
+      <p class="hint">Đặt tướng lên ô cùng mệnh với nó (ví dụ Hổ mệnh ${elTag('moc')} trên ô ${elTag('moc')}) để được +15% sức mạnh và máu.</p>`;
+    return;
+  }
+  if (S.phase==='lobby'){
+    el.innerHTML=`<div class="phase-head"><span class="tag p1">Chủ phòng · ${nm(0)}</span><h2>Mời bạn vào phòng</h2></div>
+      ${NET.ready ? `<div class="code-box" id="codeBox">${NET.code}</div>
+      <div class="btns"><button class="btn" data-act="copy">Sao chép mã</button></div>
+      <p class="hint">Gửi mã này cho bạn. Bạn ấy mở game, nhập mã ở mục <b>Đấu online</b> rồi bấm <b>Vào phòng</b>. Bạn chơi nửa bàn dưới.</p>
+      <p class="hint"><span class="dot"></span>Đang chờ bạn vào phòng…</p>` : `<p class="hint"><span class="dot"></span>Đang tạo phòng…</p>`}
+      <button class="btn ghost" data-act="menu">Hủy phòng</button>`;
+    return;
+  }
+  if (S.phase==='joining'){
+    el.innerHTML=`<div class="phase-head"><span class="tag p2">Khách</span><h2>Đang vào phòng ${esc(NET.code||'')}</h2></div>
+      <p class="hint"><span class="dot"></span>Đang kết nối tới chủ phòng… Bạn sẽ chơi nửa bàn trên.</p>
+      <button class="btn ghost" data-act="menu">Hủy</button>`;
+    return;
+  }
+  if (S.phase==='netfail'){
+    el.innerHTML=`<div class="phase-head"><span class="tag">Đấu online</span><h2>Chưa kết nối được</h2></div>
+      <p class="hint">${esc(NET.err||'Kết nối gặp lỗi.')}</p>
+      <button class="btn" data-act="menu">Về màn hình chính</button>`;
+    return;
+  }
+  if (S.phase==='draft'){
+    const ai=!canAct(a);
+    const cards=ORDER.map(id=>cardHTML(id,{mode:'pick',disabled:ai||S.taken[id]!==undefined,owner:S.taken[id],gone:S.taken[id]!==undefined})).join('');
+    const ros=p=>S.players[p].hand.map(id=>ANIMALS[id].emoji).join('')||'<em class="q">chưa có</em>';
+    el.innerHTML=`<div class="phase-head"><span class="tag ${P[a].cls}">Lượt ${nm(a)}</span><h2>Bốc tướng (${S.draftIdx+1}/10)</h2></div>
+      <p class="hint">${ai?waitText(a,'chọn'):`Chọn một con giáp. Mỗi bên lấy 5 con, bốc xen kẽ: ${nm(0)} 1 con, rồi mỗi bên lần lượt 2 con, ${nm(1)} lấy con cuối.`}</p>
+      <div class="roster"><div class="p1"><b>${nm(0)}</b><span>${ros(0)}</span></div><div class="p2"><b>${nm(1)}</b><span>${ros(1)}</span></div></div>
+      <div class="cards">${cards}</div>`;
+    return;
+  }
+  if (S.phase==='place'){
+    const ai=!canAct(a), opp=1-a, online=S.mode==='online', oppPc=online?null:S.current[opp];
+    const hand=S.players[a].hand;
+    const cards=hand.map(id=>{ const used=S.players[a].used.includes(id);
+      return cardHTML(id,{mode:'sel',disabled:ai||used,sel:S.selected===id,gone:used}); }).join('');
+    let oppNote='';
+    if (oppPc){ const o=ANIMALS[oppPc.animal]; const t=S.board[oppPc.r][oppPc.c];
+      oppNote=`<div class="opp-note">${nm(opp)} đã ra <b>${o.emoji} ${o.name}</b> ${elTag(o.el)}${t===o.el?' · đứng đúng đất (+15%)':''}`;
+      if (S.selected) oppNote+=`<div class="chips" style="margin-top:8px">${matchup(S.selected,oppPc.animal).map(([k,t])=>`<span class="chip ${k}">${t}</span>`).join('')}</div>`;
+      oppNote+='</div>'; }
+    if (online){ const me=ME(), op=1-me;
+      oppNote = `<div class="opp-note">Hai bên đặt quân cùng lúc. Tướng được giấu (❓) đến khi cả hai đặt xong.<br>${S.current[op]?`<b>${nm(op)}</b> đã đặt quân.`:`${nm(op)} đang chọn…`}${S.current[me]?' Bạn đã đặt xong.':''}</div>`; }
+    const hint = ai ? waitText(a,'đặt quân') : S.selected
+      ? `Đã chọn <b>${ANIMALS[S.selected].name}</b>. Bấm một ô có viền xanh ở nửa bàn của bạn. Ô phát sáng là ô cùng mệnh (+15%).`
+      : 'Chọn tướng sẽ ra trận vòng này.';
+    el.innerHTML=`<div class="phase-head"><span class="tag ${P[a].cls}">Lượt ${nm(a)}</span><h2>Vòng ${S.round} · Đặt quân</h2></div>
+      ${oppNote}<p class="hint">${hint}</p><div class="cards">${cards}</div>`;
+    return;
+  }
+  if (S.phase==='roll'){
+    const mini=p=>{ const pc=S.current[p], an=ANIMALS[pc.animal];
+      return `<div class="mini ${P[p].cls}" id="mini${p}"><span class="emo">${an.emoji}</span><div style="min-width:0"><b>${an.name}</b><div class="v" id="st${p}"></div><div class="v" id="sk${p}"></div></div></div>`; };
+    const lbls=SKILLS.map((s,i)=>`<span class="lbl" style="transform:translate(-50%,-50%) rotate(${i*60+30}deg) translateY(-58px)"><i>${s.icon}</i>${s.name}</span>`).join('');
+    el.innerHTML=`<div class="phase-head"><span class="tag">Gieo vận may</span><h2>Vòng ${S.round} · Xúc xắc và vòng quay</h2></div>
+      <div class="duel">${mini(0)}<span class="vs">VS</span>${mini(1)}</div>
+      <div class="roller"><div class="die" id="die" aria-label="Xúc xắc">${'<i class="pip"></i>'.repeat(9)}</div>
+        <div class="wheel-box"><div class="pointer"></div><div class="wheel" id="wheel" style="transform:rotate(${S.wheelRot}deg)">${lbls}</div></div></div>
+      <p class="hint">Xúc xắc quyết định số sao (1–6). Vòng quay chọn đòn đánh; đòn khắc đối thủ được +30% sát thương.</p>
+      <button class="btn wide" id="rollBtn" data-act="roll"></button>`;
+    setDie(6); updateRollUI(); return;
+  }
+  if (S.phase==='battle' || S.phase==='result' || S.phase==='end'){
+    if (!S.res){ el.innerHTML=''; return; }
+    const last=S.res.ev[S.res.ev.length-1];
+    const hp = S.phase==='battle' ? [S.res.F[0].maxHp,S.res.F[1].maxHp] : last.hp;
+    el.innerHTML=`<div class="phase-head"><span class="tag">Giao tranh</span><h2>Vòng ${S.round} · ${S.res.F[0].name} đấu ${S.res.F[1].name}</h2></div>
+      <div class="arena">${fighterHTML(0,hp[0])}<span class="vs">VS</span>${fighterHTML(1,hp[1])}</div>
+      <ol class="log" id="log">${S.phase==='battle'?'':S.logLines.join('')}</ol>
+      <div id="battleCtl"><button class="btn ghost wide" data-act="skip">Bỏ qua hoạt cảnh</button></div>`;
+    if (S.phase!=='battle'){ renderResultCtl(); const lg=$('#log'); lg.scrollTop=lg.scrollHeight;
+      for (const i of [0,1]) if (last.hp[i]<=0) $('#ft'+i).classList.add('ko'); }
+  }
+}
+function fighterHTML(i,hp){
+  const f=S.res.F[i], sk=SKILLS[f.skill];
+  const st = f.stars!==f.baseStars ? `<s>${f.baseStars}★</s> ${f.stars}★` : `${f.stars}★`;
+  const pct=hp/f.maxHp*100;
+  return `<div class="fighter ${P[i].cls}" id="ft${i}">
+    <div class="f-side">${nm(i)}</div><div class="f-emo">${f.a.emoji}</div>
+    <div class="f-name">${f.name} <span class="f-st">${st}</span></div>
+    <div class="f-sk">${sk.icon} ${sk.name}${f.skill!==f.baseSkill?' (đã đổi)':''}</div>
+    <div class="hp"><i id="hpb${i}" class="${pct<35?'low':''}" style="width:${pct}%"></i></div>
+    <div class="hp-t" id="hpt${i}">${hp}/${f.maxHp}</div>
+    <div class="f-pass">${f.a.skill}</div></div>`;
+}
+function renderResultCtl(){
+  const ctl=$('#battleCtl'); if (!ctl) return;
+  const w=S.res.winner;
+  const text = w===null ? 'Hòa! Không bên nào ghi điểm.' : `${nm(w)} thắng vòng ${S.round}!`;
+  ctl.innerHTML = `<div class="banner ${w===null?'':P[w].cls}">${text}</div>` +
+    (S.phase==='end' ? '' : `<button class="btn wide" data-act="next">${isOver()?'Xem kết quả chung cuộc':'Vòng tiếp theo'}</button>`);
+}
+function updateRollUI(){
+  if (S.phase!=='roll' || !$('#rollBtn')) return;
+  for (const p of [0,1]){
+    const pc=S.current[p];
+    $('#st'+p).innerHTML = pc.stars ? starStr(pc.stars) : '<span class="q">? sao</span>';
+    $('#sk'+p).innerHTML = pc.skill!=null ? `${SKILLS[pc.skill].icon} ${SKILLS[pc.skill].name}` : '<span class="q">? đòn đánh</span>';
+  }
+  const btn=$('#rollBtn'), st=S.rollSteps[S.rollIdx];
+  [0,1].forEach(p=>$('#mini'+p).classList.toggle('active', !!st && st.p===p));
+  if (!st){ btn.textContent='Xuất trận!'; btn.dataset.act='fight'; btn.disabled=false; return; }
+  const ai=!canAct(st.p);
+  btn.dataset.act='roll';
+  btn.textContent = ai ? (S.mode==='ai' ? 'Máy đang gieo…' : `Đang chờ ${P[st.p].name} gieo…`) : `${P[st.p].name}: ${st.k==='dice'?'Tung xúc xắc':'Quay đòn đánh'}`;
+  btn.disabled = S.busy || ai;
+}
+
+function renderStatic(){
+  const chain=['kim','moc','tho','thuy','hoa','kim'].map(elTag).join(' → ');
+  const sk=[...SKILLS,SKILLS[0]].map(s=>s.name).join(' → ');
+  $('#legend').innerHTML=`<div><h3>Ngũ hành tương khắc<small>+25% sát thương</small></h3><p>${chain}</p></div>
+    <div><h3>Vòng đòn đánh<small>+30% sát thương</small></h3><p>Mỗi đòn khắc 2 đòn đứng ngay sau nó: ${sk}</p></div>`;
+  const rows=ORDER.map(id=>{const a=ANIMALS[id];return `<tr><td>${a.emoji} ${a.name}</td><td>${elTag(a.el)}</td><td class="num">${Math.round(a.atk*100)}%</td><td class="num">${Math.round(a.hp*100)}%</td><td class="num">${a.spd}</td><td><b>${a.skill}</b>: ${a.desc}</td></tr>`;}).join('');
+  const starRows=[1,2,3,4,5,6].map(n=>`${n}★ ${STAR_ATK[n]}/${STAR_HP[n]}`).join(' · ');
+  $('#rules').innerHTML=`<div><h2>Luật chơi</h2><ol>
+      <li>Hai bên bốc xen kẽ, mỗi bên lấy 5 tướng từ 12 con giáp.</li>
+      <li>Mỗi vòng, hai bên lần lượt đặt một tướng lên nửa bàn của mình. Bên đặt trước đổi nhau mỗi vòng.</li>
+      <li>Mỗi bên tung xúc xắc lấy số sao (1–6), rồi quay vòng lấy đòn đánh.</li>
+      <li>Hai con vật giao tranh theo hiệp cho đến khi một con gục. Bên thắng được 1 điểm.</li>
+      <li>Bên nào thắng 3 vòng trước là thắng ván. Hết 5 vòng thì bên nhiều điểm hơn thắng.</li></ol></div>
+    <div><h2>Sức mạnh và khắc chế</h2>
+      <p>Số sao quyết định sức mạnh/máu gốc: ${starRows}.</p>
+      <p>Cộng dồn: mệnh khắc mệnh +25%, đòn đánh khắc đòn đối thủ +30%, thiên địch +20% (Mèo→Chuột, Hổ→Dê, Gà→Rắn, Chó→Mèo), đứng ô cùng mệnh +15% sức mạnh và máu.</p>
+      <p>Con có tốc độ cao hơn ra đòn trước mỗi hiệp.</p></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Con giáp</th><th>Mệnh</th><th>Sức mạnh</th><th>Máu</th><th>Tốc</th><th>Kỹ năng riêng</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  switch(b.dataset.act){
+    case 'mode2': readNames('pvp'); newGame('pvp'); break;
+    case 'modeAI': readNames('ai'); newGame('ai'); break;
+    case 'host': hostRoom(); break;
+    case 'join': joinRoom(); break;
+    case 'copy': { const code=NET.code||''; const done=()=>{ b.textContent='Đã sao chép'; setTimeout(()=>{ if(b.isConnected) b.textContent='Sao chép mã'; },1500); };
+      try { navigator.clipboard.writeText(code).then(done).catch(()=>selectCode()); } catch(e){ selectCode(); } break; }
+    case 'roll': { const st=S.rollSteps[S.rollIdx]; if (!st || !canAct(st.p) || S.busy) break;
+      if (request({t:'roll'})){ S.busy=true; updateRollUI(); } else doRoll(); break; }
+    case 'fight': if (!request({t:'fight'})) startBattle(); break;
+    case 'skip': SKIP=true; break;
+    case 'next': if (!request({t:'next'})) nextRound(); break;
+    case 'again': if (request({t:'again'})) break; $('#overlay').hidden=true; newGame(S.mode); break;
+    case 'menu': $('#overlay').hidden=true; initMenu(); break;
+  }
+});
+$('#panel').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if (!b || b.disabled || S.busy) return;
+  const a=actor(); if (a==null || !canAct(a)) return;
+  if (b.dataset.pick && S.phase==='draft'){ if (!request({t:'pick',id:b.dataset.pick})) pick(a,b.dataset.pick); }
+  else if (b.dataset.sel && S.phase==='place'){ S.selected = S.selected===b.dataset.sel ? null : b.dataset.sel; renderPanel(); renderBoard(); }
+});
+$('#panel').addEventListener('keydown',e=>{
+  if (e.key!=='Enter') return;
+  if (e.target.matches('#roomCode')){ e.preventDefault(); joinRoom(); }
+  else if (e.target.matches('#name0,#name1')){ e.preventDefault(); readNames('pvp'); newGame('pvp'); }
+});
+function selectCode(){ const el=$('#codeBox'); if (!el) return; const r=document.createRange(); r.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(r); }
+function cellAct(cell){
+  if (!cell || !cell.dataset.r || S.phase!=='place' || S.busy) return;
+  const a=actor(); if (!canAct(a) || !S.selected) return;
+  const r=+cell.dataset.r, c=+cell.dataset.c;
+  if (!isFree(a,r,c)) return;
+  if (request({t:'place',id:S.selected,r,c})){ cell.classList.add('bonus'); return; }
+  placePiece(a,S.selected,r,c);
+}
+$('#board').addEventListener('click',e=>cellAct(e.target.closest('.cell')));
+$('#board').addEventListener('keydown',e=>{ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); cellAct(e.target.closest('.cell')); } });
+
+renderStatic();
+initMenu();
+</script>
+
+</body>
+</html>
